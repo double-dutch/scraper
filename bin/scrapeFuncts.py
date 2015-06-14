@@ -9,6 +9,7 @@ from numpy import arange
 from notify import *
 from pyspark.sql.types import *
 from io import open
+from shutil import rmtree
 
 
 # Function for getting Beautiful Soup
@@ -93,7 +94,7 @@ def beerIds(link, brewery_id, user_agent):
         tags = soup.find_all("a", href = re.compile(r"^/beer/(?!(rate|top-50)).*\d+"))
         for tag in tags:
             ids = re.search(r"/beer/(.*)/(\d+)/", tag['href'])
-            list_ids.append([ids.group(2), ids.group(1), tag.text])
+            list_ids.append([ids.group(2).strip(), ids.group(1).strip(), tag.text])
         return list_ids
     beer_ids = addIds(soup, [])
 
@@ -284,6 +285,13 @@ def writeRDD(rddName, rddData, sqlContext, overwrite = False):
         df.select("*").save(rddName + '.parquet', 'parquet', 'overwrite')
     else:
         df.select("*").save(rddName + '.parquet', 'parquet', 'append')
+
+
+# Function to remove breweries which have already been scraped
+def resume(start, brewery_ids):
+    ids = [int(brewery[0]) for brewery in brewery_ids]
+    ix = ids.index(start)
+    return brewery_ids[ix:]
 
 
 # Function to get item properties

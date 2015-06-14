@@ -5,9 +5,9 @@ from pyspark import SparkContext
 from pyspark.sql import SQLContext
 
 
-def scrape(link = ''):
+def scrape(link = '', resume_from = None):
 
-    # Starting Spark instance
+   # Starting Spark instance
     sc = SparkContext("local", "Scraper")
     sqlContext = SQLContext(sc)
     overwrite = True
@@ -21,7 +21,12 @@ def scrape(link = ''):
     url = link + 'breweries/'
     soup = getSoup(url, choice(user_agents))
     region_ids = regionIds(soup, ['213'])
-    brewery_ids = breweryIds(link, region_ids[0:3], user_agents)
+    brewery_ids = breweryIds(link, region_ids, user_agents)
+
+    # Resuming from where scraping left off, if specified
+    if resume_from:
+        brewery_ids = resume(resume_from, brewery_ids)
+        overwrite = False
 
     # Looping through breweries, getting (1) complete brewery features, (2) A list of beer
     # features and (3) a list of review features
@@ -51,5 +56,7 @@ def scrape(link = ''):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('link', help="Website to scrape", type = str, default = '')
+    parser.add_argument('--resume', help = "Brewery ID to resume scraping from",
+        type = int, default = None)
     args = parser.parse_args()
-    scrape(args.link)
+    scrape(args.link, args.resume)
